@@ -1,0 +1,73 @@
+/* ── Dark theme (default) ─────────────────────────────────── */
+[data-theme="dark"] {
+  --bg-app:        #0f0f11;
+  --bg-panel:      #141416;
+  --bg-panel-2:    #17171f;
+  --bg-input:      rgba(255,255,255,0.05);
+  --bg-hover:      rgba(255,255,255,0.07);
+  --bg-active:     rgba(124,58,237,0.18);
+  --bg-canvas:     #0f0f11;
+
+  --border:        rgba(255,255,255,0.09);
+  --border-active: rgba(124,58,237,0.5);
+
+  --text-primary:  #f0f0f4;
+  --text-secondary:#9ca3af;
+  --text-muted:    rgba(255,255,255,0.35);
+  --text-faint:    rgba(255,255,255,0.18);
+
+  --accent:        #7c3aed;
+  --accent-hover:  #6d28d9;
+  --accent-soft:   rgba(124,58,237,0.15);
+
+  --dot-color:     rgba(255,255,255,0.04);
+
+  --phone-bg:      #17171c;
+  --phone-border:  rgba(255,255,255,0.1);
+  --phone-ring-1:  #0f0f11;
+  --phone-ring-2:  rgba(255,255,255,0.06);
+
+  --kbd-bg:        rgba(255,255,255,0.08);
+  --kbd-border:    rgba(255,255,255,0.12);
+
+  --modal-bg:      #16161e;
+  --card-bg:       rgba(255,255,255,0.03);
+  --card-bg-hover: rgba(124,58,237,0.1);
+}
+
+/* ── Light theme ──────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg-app:        #f4f4f7;
+  --bg-panel:      #ffffff;
+  --bg-panel-2:    #f9f9fb;
+  --bg-input:      rgba(0,0,0,0.04);
+  --bg-hover:      rgba(0,0,0,0.05);
+  --bg-active:     rgba(109,40,217,0.08);
+  --bg-canvas:     #eeeef3;
+
+  --border:        rgba(0,0,0,0.09);
+  --border-active: rgba(109,40,217,0.45);
+
+  --text-primary:  #111118;
+  --text-secondary:#4b5563;
+  --text-muted:    rgba(0,0,0,0.4);
+  --text-faint:    rgba(0,0,0,0.22);
+
+  --accent:        #6d28d9;
+  --accent-hover:  #5b21b6;
+  --accent-soft:   rgba(109,40,217,0.1);
+
+  --dot-color:     rgba(0,0,0,0.06);
+
+  --phone-bg:      #ffffff;
+  --phone-border:  rgba(0,0,0,0.12);
+  --phone-ring-1:  #eeeef3;
+  --phone-ring-2:  rgba(0,0,0,0.07);
+
+  --kbd-bg:        rgba(0,0,0,0.06);
+  --kbd-border:    rgba(0,0,0,0.12);
+
+  --modal-bg:      #ffffff;
+  --card-bg:       rgba(0,0,0,0.02);
+  --card-bg-hover: rgba(109,40,217,0.07);
+}
