@@ -3,9 +3,8 @@ import {
   useContext,
   useState,
   useCallback,
-  ReactNode,
-  useEffect,
 } from "react";
+import type { ReactNode } from "react";
 import type { Project, FunnelMeta } from "@/types";
 import * as storage from "@/storage";
 

@@ -3,10 +3,10 @@ import {
   useContext,
   useState,
   useCallback,
-  ReactNode,
   useEffect,
   useRef,
 } from "react";
+import type { ReactNode } from "react";
 import type {
   Screen,
   CanvasComponent,
