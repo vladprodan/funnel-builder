@@ -1,4 +1,5 @@
 import { useApp } from "@/context/AppContext";
+import { useAuth } from "@/context/AuthContext";
 import { BuilderProvider, useBuilder } from "@/context/BuilderContext";
 import { ScreensPanel } from "@/components/ScreensPanel";
 import { Canvas } from "@/components/Canvas";
@@ -6,6 +7,7 @@ import { ComponentsPanel } from "@/components/ComponentsPanel";
 import { PropertiesPanel } from "@/components/PropertiesPanel";
 import { FlowView } from "@/components/FlowView";
 import { JsonEditor } from "@/components/JsonEditor";
+import { PreviewView } from "@/components/PreviewView";
 import { ShortcutsHint } from "@/components/ShortcutsHint";
 import type { FunnelMeta } from "@/types";
 import * as storage from "@/storage";
@@ -65,10 +67,30 @@ const VIEWS = [
       </svg>
     ),
   },
+  {
+    id: "preview" as const,
+    label: "Preview",
+    icon: (
+      <svg
+        width="12"
+        height="12"
+        viewBox="0 0 12 12"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      >
+        <path d="M1 6s2-4 5-4 5 4 5 4-2 4-5 4-5-4-5-4z" />
+        <circle cx="6" cy="6" r="1.5" />
+      </svg>
+    ),
+  },
 ];
 
 function Topbar({ funnelName }: { funnelName: string }) {
-  const { view, setView, theme, toggleTheme, onBack } = useBuilder();
+  const { view, setView, onBack, undo, redo, canUndo, canRedo } = useBuilder();
+  const { theme, toggleTheme } = useApp();
+  const { signOut } = useAuth();
   return (
     <div
       className="h-11 flex items-center px-4 gap-3 shrink-0"
@@ -80,12 +102,7 @@ function Topbar({ funnelName }: { funnelName: string }) {
       {/* Back button */}
       <button
         onClick={onBack}
-        className="flex items-center gap-1.5 text-xs transition-colors rounded px-2 py-1"
-        style={{ color: "var(--text-muted)" }}
-        onMouseEnter={(e) =>
-          (e.currentTarget.style.background = "var(--bg-hover)")
-        }
-        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+        className="btn-ghost flex items-center gap-1.5 text-xs rounded px-2 py-1"
       >
         <svg
           width="13"
@@ -127,6 +144,34 @@ function Topbar({ funnelName }: { funnelName: string }) {
         </span>
       </div>
 
+      {/* Undo / Redo */}
+      <div className="flex items-center gap-0.5">
+        <button
+          onClick={undo}
+          disabled={!canUndo}
+          title="Undo (⌘Z)"
+          className="btn-ghost w-7 h-7 flex items-center justify-center rounded"
+          style={{ opacity: canUndo ? 1 : 0.35 }}
+        >
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 5h6a3 3 0 0 1 0 6H5" />
+            <path d="M2 5l2.5-2.5M2 5l2.5 2.5" />
+          </svg>
+        </button>
+        <button
+          onClick={redo}
+          disabled={!canRedo}
+          title="Redo (⌘⇧Z)"
+          className="btn-ghost w-7 h-7 flex items-center justify-center rounded"
+          style={{ opacity: canRedo ? 1 : 0.35 }}
+        >
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M11 5H5a3 3 0 0 0 0 6h3" />
+            <path d="M11 5l-2.5-2.5M11 5l-2.5 2.5" />
+          </svg>
+        </button>
+      </div>
+
       <div className="w-px h-4 mx-1" style={{ background: "var(--border)" }} />
 
       {/* View tabs */}
@@ -165,14 +210,7 @@ function Topbar({ funnelName }: { funnelName: string }) {
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}
-          className="flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium transition-colors"
-          style={{ color: "var(--text-muted)" }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.background = "var(--bg-hover)")
-          }
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.background = "transparent")
-          }
+          className="btn-ghost flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium"
         >
           {theme === "dark" ? (
             <svg
@@ -207,15 +245,14 @@ function Topbar({ funnelName }: { funnelName: string }) {
           style={{ background: "var(--border)" }}
         />
         <button
-          className="text-xs px-3 py-1.5 rounded font-medium text-white transition-colors"
-          style={{ background: "var(--accent)" }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.background = "var(--accent-hover)")
-          }
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.background = "var(--accent)")
-          }
+          onClick={() => void signOut()}
+          className="btn-ghost flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium"
         >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+          </svg>
+        </button>
+        <button className="btn-accent text-xs px-3 py-1.5 rounded font-medium">
           Publish
         </button>
       </div>
@@ -224,7 +261,8 @@ function Topbar({ funnelName }: { funnelName: string }) {
 }
 
 function BuilderLayout({ funnelName }: { funnelName: string }) {
-  const { view, theme } = useBuilder();
+  const { view } = useBuilder();
+  const { theme } = useApp();
   const isBuilder = view === "builder";
   return (
     <div
@@ -242,6 +280,7 @@ function BuilderLayout({ funnelName }: { funnelName: string }) {
         {view === "builder" && <Canvas />}
         {view === "flow" && <FlowView />}
         {view === "json" && <JsonEditor />}
+        {view === "preview" && <PreviewView />}
       </div>
       {isBuilder && (
         <div
@@ -261,25 +300,25 @@ function BuilderLayout({ funnelName }: { funnelName: string }) {
 
 interface Props {
   funnel: FunnelMeta;
-  theme: "dark" | "light";
 }
 
-export function BuilderView({ funnel, theme }: Props) {
-  const { goToDashboard, theme: appTheme } = useApp();
+export function BuilderView({ funnel }: Props) {
+  const { goToDashboard } = useApp();
 
   const handleSave = (
     screens: Parameters<typeof storage.updateFunnel>[1],
     connections: Parameters<typeof storage.updateFunnel>[2]
   ) => {
-    storage.updateFunnel(funnel.id, screens, connections);
+    void storage.updateFunnel(funnel.id, screens, connections);
   };
 
   return (
     <BuilderProvider
-      funnelId={funnel.id}
       initialScreens={funnel.screens}
       initialConnections={funnel.connections}
-      theme={appTheme}
+      funnelId={funnel.id}
+      funnelName={funnel.name}
+      projectId={funnel.projectId}
       onSave={handleSave}
       onBack={goToDashboard}
     >

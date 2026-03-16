@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, type MouseEvent } from "react";
 import { useBuilder } from "@/context/BuilderContext";
-import type { Screen } from "@/types";
+import type { Screen, RouteCondition } from "@/types";
 
 const CARD_W = 200;
 const CARD_H = 160;
@@ -29,7 +29,7 @@ export function FlowView() {
     updateScreenFlowPosition,
     addConnection,
     removeConnection,
-    updateConnectionLabel,
+    updateRoute,
     setActiveScreenId,
     setView,
   } = useBuilder();
@@ -55,9 +55,14 @@ export function FlowView() {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Label editing
+  // Route editing popup state
   const [editingConn, setEditingConn] = useState<string | null>(null);
   const [labelDraft, setLabelDraft] = useState("");
+  const [conditionDraft, setConditionDraft] = useState("");
+  const [onEventDraft, setOnEventDraft] = useState("goto_next");
+  const [defaultToDraft, setDefaultToDraft] = useState("");
+  const [analyticsDraft, setAnalyticsDraft] = useState("");
+  const [conditionsDraft, setConditionsDraft] = useState<RouteCondition[]>([]);
 
   // Hover conn
   const [hoveredConn, setHoveredConn] = useState<string | null>(null);
@@ -267,6 +272,7 @@ export function FlowView() {
             const a = getPortOut(from.flowPosition ?? { x: 0, y: 0 });
             const b = getPortIn(to.flowPosition ?? { x: 0, y: 0 });
             const isHovered = hoveredConn === conn.id;
+            const isConditional = !!conn.condition;
             return (
               <g
                 key={conn.id}
@@ -276,6 +282,7 @@ export function FlowView() {
                 onClick={() => {
                   setEditingConn(conn.id);
                   setLabelDraft(conn.label ?? "");
+                  setConditionDraft(conn.condition ?? "");
                 }}
               >
                 {/* Fat invisible hit area */}
@@ -292,6 +299,7 @@ export function FlowView() {
                   stroke={isHovered ? "#a78bfa" : "#7c3aed"}
                   strokeWidth={isHovered ? 2 : 1.5}
                   strokeOpacity={isHovered ? 1 : 0.7}
+                  strokeDasharray={isConditional ? "6 3" : undefined}
                   markerEnd={isHovered ? "url(#arrow-hover)" : "url(#arrow)"}
                   style={{ transition: "stroke 0.15s, stroke-width 0.15s" }}
                 />
@@ -321,7 +329,6 @@ export function FlowView() {
           {/* Screen cards */}
           {screens.map((screen) => {
             const pos = screen.flowPosition ?? { x: 0, y: 0 };
-            const portOut = getPortOut(pos);
             const portIn = getPortIn(pos);
             return (
               <g key={screen.id}>
@@ -377,7 +384,7 @@ export function FlowView() {
         })}
       </div>
 
-      {/* Connection label popups */}
+      {/* Connection route popups */}
       {connections.map((conn) => {
         const from = screenMap.get(conn.fromScreenId);
         const to = screenMap.get(conn.toScreenId);
@@ -386,6 +393,30 @@ export function FlowView() {
         const cx = mid.x * zoom + pan.x;
         const cy = mid.y * zoom + pan.y;
         const isEditing = editingConn === conn.id;
+
+        const openEdit = () => {
+          setEditingConn(conn.id);
+          setLabelDraft(conn.label ?? "");
+          setConditionDraft(conn.condition ?? "");
+          setOnEventDraft(conn.onEvent ?? "goto_next");
+          setDefaultToDraft(conn.defaultTo ?? "");
+          setAnalyticsDraft(conn.analytics?.event_name ?? "");
+          setConditionsDraft(conn.conditions ?? []);
+        };
+
+        const save = () => {
+          updateRoute(conn.id, {
+            label: labelDraft,
+            condition: conditionDraft,
+            onEvent: onEventDraft || "goto_next",
+            defaultTo: defaultToDraft || undefined,
+            analytics: analyticsDraft ? { event_name: analyticsDraft } : undefined,
+            conditions: conditionsDraft.length > 0 ? conditionsDraft : undefined,
+          });
+          setEditingConn(null);
+        };
+
+        const hasInfo = conn.label || conn.condition || conn.conditions?.length;
 
         return (
           <div
@@ -397,75 +428,128 @@ export function FlowView() {
           >
             {isEditing ? (
               <div
-                className="flex items-center gap-1 rounded-lg shadow-xl px-1 py-1"
-                style={{
-                  background: "var(--bg-panel)",
-                  border: "1px solid var(--border-active)",
-                }}
+                className="flex flex-col gap-1.5 rounded-lg shadow-xl p-2.5"
+                style={{ background: "var(--bg-panel)", border: "1px solid var(--border-active)", minWidth: 200, maxHeight: 340, overflowY: "auto" }}
               >
-                <input
-                  autoFocus
-                  className="bg-transparent text-white text-[11px] outline-none w-28 px-1"
+                {/* Label */}
+                <input autoFocus placeholder="Label..."
+                  className="text-[11px] outline-none w-full rounded px-1.5 py-1"
+                  style={{ color: "var(--text-primary)", background: "var(--bg-input)", border: "1px solid var(--border)" }}
                   value={labelDraft}
                   onChange={(e) => setLabelDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      updateConnectionLabel(conn.id, labelDraft);
-                      setEditingConn(null);
-                    }
-                    if (e.key === "Escape") setEditingConn(null);
-                  }}
-                  onBlur={() => {
-                    updateConnectionLabel(conn.id, labelDraft);
-                    setEditingConn(null);
-                  }}
-                  placeholder="label..."
+                  onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") setEditingConn(null); }}
                 />
-                <button
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    removeConnection(conn.id);
-                    setEditingConn(null);
-                  }}
-                  className="text-red-400 hover:text-red-300 px-0.5"
-                  title="Delete connection"
-                >
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 10 10"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
+                {/* on_event */}
+                <div className="flex items-center gap-1">
+                  <span className="text-[9px] shrink-0 w-16" style={{ color: "var(--text-faint)" }}>on_event:</span>
+                  <input placeholder="goto_next"
+                    className="text-[11px] outline-none flex-1 rounded px-1.5 py-1"
+                    style={{ color: "var(--text-primary)", background: "var(--bg-input)", border: "1px solid var(--border)" }}
+                    value={onEventDraft}
+                    onChange={(e) => setOnEventDraft(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Escape") setEditingConn(null); }}
+                  />
+                </div>
+                {/* Preview btn condition */}
+                <div className="flex items-center gap-1">
+                  <span className="text-[9px] shrink-0 w-16" style={{ color: "var(--text-faint)" }}>btn match:</span>
+                  <input placeholder="Button text..."
+                    className="text-[11px] outline-none flex-1 rounded px-1.5 py-1"
+                    style={{ color: "var(--text-primary)", background: "var(--bg-input)", border: "1px solid var(--border)" }}
+                    value={conditionDraft}
+                    onChange={(e) => setConditionDraft(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Escape") setEditingConn(null); }}
+                  />
+                </div>
+                {/* default_to */}
+                <div className="flex items-center gap-1">
+                  <span className="text-[9px] shrink-0 w-16" style={{ color: "var(--text-faint)" }}>default_to:</span>
+                  <select
+                    value={defaultToDraft}
+                    onChange={(e) => setDefaultToDraft(e.target.value)}
+                    className="flex-1 rounded px-1 py-1 text-[11px] outline-none"
+                    style={{ appearance: "none", background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}
                   >
-                    <path d="M1 1l8 8M9 1L1 9" />
-                  </svg>
-                </button>
+                    <option value="">— none —</option>
+                    {screens.filter(s => s.id !== conn.fromScreenId).map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {/* Analytics */}
+                <div className="flex items-center gap-1">
+                  <span className="text-[9px] shrink-0 w-16" style={{ color: "var(--text-faint)" }}>analytics:</span>
+                  <input placeholder="event_name..."
+                    className="text-[11px] outline-none flex-1 rounded px-1.5 py-1"
+                    style={{ color: "var(--text-primary)", background: "var(--bg-input)", border: "1px solid var(--border)" }}
+                    value={analyticsDraft}
+                    onChange={(e) => setAnalyticsDraft(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Escape") setEditingConn(null); }}
+                  />
+                </div>
+                {/* Conditions */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px]" style={{ color: "var(--text-faint)" }}>conditions:</span>
+                    <button
+                      onMouseDown={(e) => { e.preventDefault(); setConditionsDraft(prev => [...prev, { field: "", operator: "equals", value: "" }]); }}
+                      className="text-[9px] px-1" style={{ color: "var(--accent)" }}
+                    >+ add</button>
+                  </div>
+                  {conditionsDraft.map((cond, i) => (
+                    <div key={i} className="flex items-center gap-1">
+                      <input placeholder="field" value={cond.field}
+                        onChange={(e) => setConditionsDraft(prev => prev.map((c, j) => j === i ? { ...c, field: e.target.value } : c))}
+                        className="text-[10px] rounded px-1 py-0.5 outline-none flex-1"
+                        style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-secondary)", minWidth: 0 }}
+                      />
+                      <select value={cond.operator}
+                        onChange={(e) => setConditionsDraft(prev => prev.map((c, j) => j === i ? { ...c, operator: e.target.value as RouteCondition['operator'] } : c))}
+                        className="text-[10px] rounded px-0.5 py-0.5 outline-none"
+                        style={{ appearance: "none", background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}
+                      >
+                        <option value="equals">=</option>
+                        <option value="not_equals">≠</option>
+                        <option value="contains">∈</option>
+                        <option value="not_contains">∉</option>
+                        <option value="gte">≥</option>
+                        <option value="lte">≤</option>
+                        <option value="gt">&gt;</option>
+                        <option value="lt">&lt;</option>
+                      </select>
+                      <input placeholder="value" value={cond.value}
+                        onChange={(e) => setConditionsDraft(prev => prev.map((c, j) => j === i ? { ...c, value: e.target.value } : c))}
+                        className="text-[10px] rounded px-1 py-0.5 outline-none flex-1"
+                        style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-secondary)", minWidth: 0 }}
+                      />
+                      <button onMouseDown={(e) => { e.preventDefault(); setConditionsDraft(prev => prev.filter((_, j) => j !== i)); }}
+                        className="text-[10px] px-0.5" style={{ color: "#f87171" }}>×</button>
+                    </div>
+                  ))}
+                </div>
+                {/* Actions */}
+                <div className="flex justify-between items-center pt-0.5" style={{ borderTop: "1px solid var(--border)" }}>
+                  <button
+                    onMouseDown={(e) => { e.preventDefault(); removeConnection(conn.id); setEditingConn(null); }}
+                    className="text-[10px] px-1" style={{ color: "#f87171" }}
+                  >Delete</button>
+                  <button
+                    onMouseDown={(e) => { e.preventDefault(); save(); }}
+                    className="text-[10px] px-2 py-0.5 rounded font-medium"
+                    style={{ background: "var(--accent)", color: "white" }}
+                  >Save</button>
+                </div>
               </div>
             ) : (
               <div
-                onClick={() => {
-                  setEditingConn(conn.id);
-                  setLabelDraft(conn.label ?? "");
-                }}
-                className={`cursor-pointer transition-all ${
-                  hoveredConn === conn.id
-                    ? "opacity-100"
-                    : conn.label
-                    ? "opacity-100"
-                    : "opacity-0 hover:opacity-100"
-                }`}
+                onClick={openEdit}
+                className={`cursor-pointer transition-all ${hoveredConn === conn.id ? "opacity-100" : hasInfo ? "opacity-100" : "opacity-0 hover:opacity-100"}`}
               >
                 <span
                   className="text-[10px] rounded-md px-2 py-0.5 font-medium whitespace-nowrap shadow"
-                  style={{
-                    background: "var(--bg-panel)",
-                    border: "1px solid var(--border-active)",
-                    color: "var(--accent)",
-                  }}
+                  style={{ background: "var(--bg-panel)", border: "1px solid var(--border-active)", color: conn.condition || conn.conditions?.length ? "#60a5fa" : "var(--accent)" }}
                 >
-                  {conn.label || "+ label"}
+                  {conn.conditions?.length ? `⚡ ${conn.conditions.length} cond` : conn.condition ? `⚡ ${conn.condition}` : conn.label || "+ label"}
                 </span>
               </div>
             )}

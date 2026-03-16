@@ -1,5 +1,6 @@
 import { useRef, useState, type DragEvent } from "react";
 import { useBuilder } from "@/context/BuilderContext";
+import { useApp } from "@/context/AppContext";
 import { ComponentRenderer } from "@/components/ComponentRenderer";
 import type { ComponentType, CanvasComponent } from "@/types";
 
@@ -7,12 +8,15 @@ export function Canvas() {
   const {
     activeScreen,
     selectedComponentId,
+    selectedComponentIds,
+    toggleComponentSelection,
     setSelectedComponentId,
     addComponent,
     removeComponent,
     moveComponent,
-    theme,
   } = useBuilder();
+  // setSelectedComponentId used in canvas background click to deselect all
+  const { theme } = useApp();
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -21,7 +25,11 @@ export function Canvas() {
 
   const handleCanvasDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = "copy";
+    e.dataTransfer.dropEffect = e.dataTransfer.types.includes(
+      "application/x-reorder-id"
+    )
+      ? "move"
+      : "copy";
   };
 
   const handleCanvasDrop = (e: DragEvent<HTMLDivElement>) => {
@@ -148,12 +156,12 @@ export function Canvas() {
                 key={comp.id}
                 component={comp}
                 index={idx}
-                isSelected={comp.id === selectedComponentId}
+                isSelected={comp.id === selectedComponentId || selectedComponentIds.has(comp.id)}
                 isDragging={comp.id === draggingId}
                 showDropIndicator={dragOverIndex === idx}
                 onSelect={(e) => {
                   e.stopPropagation();
-                  setSelectedComponentId(comp.id);
+                  toggleComponentSelection(comp.id, e.shiftKey);
                 }}
                 onDelete={() => removeComponent(comp.id)}
                 onDragStart={() => setDraggingId(comp.id)}

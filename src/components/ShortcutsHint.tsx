@@ -2,9 +2,14 @@ import { useState } from 'react'
 
 const SHORTCUTS = [
   { keys: ['↑', '↓'], label: 'Navigate screens' },
+  { keys: ['⌘', 'D'], label: 'Duplicate screen' },
+  { keys: ['⌘', 'Z'], label: 'Undo' },
+  { keys: ['⌘', '⇧', 'Z'], label: 'Redo' },
+  { keys: ['⌘', 'C'], label: 'Copy component' },
+  { keys: ['⌘', 'V'], label: 'Paste component' },
+  { keys: ['⇧', 'Click'], label: 'Multi-select' },
   { keys: ['Del'], label: 'Delete component' },
   { keys: ['Esc'], label: 'Deselect' },
-  { keys: ['⌘', 'D'], label: 'Duplicate screen' },
 ]
 
 export function ShortcutsHint() {

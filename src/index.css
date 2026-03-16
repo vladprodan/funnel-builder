@@ -68,6 +68,24 @@
 
 * { box-sizing: border-box; }
 
+/* Reusable hover utility — replaces repeated onMouseEnter/onMouseLeave inline handlers */
+@layer utilities {
+  .hover-bg:hover { background: var(--bg-hover); }
+  .hover-bg-accent:hover { background: var(--accent-hover); }
+  .btn-ghost {
+    color: var(--text-muted);
+    background: transparent;
+    transition: background 0.15s;
+  }
+  .btn-ghost:hover { background: var(--bg-hover); }
+  .btn-accent {
+    background: var(--accent);
+    color: white;
+    transition: background 0.15s;
+  }
+  .btn-accent:hover { background: var(--accent-hover); }
+}
+
 input[type=range] {
   height: 4px;
   cursor: pointer;

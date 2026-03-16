@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useBuilder } from '@/context/BuilderContext'
+import { useApp } from '@/context/AppContext'
 
 // ── Lightweight JSON syntax highlighter ──────────────────────────────────────
 function highlight(json: string, isDark: boolean): string {
@@ -39,7 +40,8 @@ function calcStats(state: object) {
 }
 
 export function JsonEditor() {
-  const { exportState, importState, theme } = useBuilder()
+  const { exportState, importState, exportToFunnelSchema, importFromFunnelSchema, funnelId, funnelName, projectId } = useBuilder()
+  const { theme } = useApp()
   const isDark = theme === 'dark'
 
   const [draft, setDraft] = useState(() => JSON.stringify(exportState(), null, 2))
@@ -72,7 +74,7 @@ export function JsonEditor() {
       if (!Array.isArray(parsed.screens)) throw new Error('"screens" must be an array')
       if (!Array.isArray(parsed.connections)) throw new Error('"connections" must be an array')
       return parsed
-    } catch (e) {
+    } catch {
       return null
     }
   }, [])
@@ -134,6 +136,37 @@ export function JsonEditor() {
       setDraft(pretty)
       setError(null)
     } catch {}
+  }
+
+  const handleSchemaExport = () => {
+    const schema = exportToFunnelSchema(funnelId, funnelName, projectId)
+    const blob = new Blob([JSON.stringify(schema, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = `${funnelId || 'funnel'}.schema.json`; a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleSchemaImport = () => {
+    const input = document.createElement('input')
+    input.type = 'file'; input.accept = '.json,application/json'
+    input.onchange = async () => {
+      const file = input.files?.[0]
+      if (!file) return
+      try {
+        const text = await file.text()
+        const parsed = JSON.parse(text)
+        if (!parsed.navigation || !Array.isArray(parsed.screens)) {
+          setError('Not a valid funnel schema (missing navigation or screens)')
+          return
+        }
+        importFromFunnelSchema(parsed)
+        handleSyncFromBuilder()
+      } catch (e) {
+        setError((e as Error).message)
+      }
+    }
+    input.click()
   }
 
   // Tab key support
@@ -217,12 +250,27 @@ export function JsonEditor() {
             </svg>
             Import
           </ToolBtn>
-          <ToolBtn onClick={handleDownload} title="Download JSON file">
+          <ToolBtn onClick={handleDownload} title="Download internal JSON">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
               <path d="M6 2v6M3 6l3 3 3-3"/>
               <path d="M2 10h8"/>
             </svg>
             Export
+          </ToolBtn>
+          <div className="w-px h-4 mx-0.5" style={{ background: 'var(--border)' }} />
+          <ToolBtn onClick={handleSchemaImport} title="Import production funnel.json schema">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M6 8V2M3 5l3-3 3 3"/>
+              <path d="M2 10h8"/>
+            </svg>
+            Schema ↑
+          </ToolBtn>
+          <ToolBtn onClick={handleSchemaExport} title="Export as production funnel.json schema">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M6 2v6M3 6l3 3 3-3"/>
+              <path d="M2 10h8"/>
+            </svg>
+            Schema ↓
           </ToolBtn>
           <div className="w-px h-4 mx-0.5" style={{ background: 'var(--border)' }} />
           <button

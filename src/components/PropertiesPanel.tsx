@@ -6,7 +6,7 @@ export function PropertiesPanel() {
 }
 
 function ScreenProperties() {
-  const { activeScreen, screens, connections, addConnection, removeConnection, updateConnectionLabel } = useBuilder()
+  const { activeScreen, screens, connections, addConnection, removeConnection, updateConnectionLabel, updateScreenMeta } = useBuilder()
   if (!activeScreen) return null
 
   const outgoing = connections.filter(c => c.fromScreenId === activeScreen.id)
@@ -90,9 +90,98 @@ function ScreenProperties() {
         })()}
       </div>
 
-      <div className="px-3 mt-auto pb-3">
-        <div className="rounded-lg p-2.5 text-[10px] leading-relaxed" style={{ background: 'var(--bg-hover)', color: 'var(--text-faint)', border: '1px solid var(--border)' }}>
-          Select a component above to edit its properties.
+      {/* Screen Metadata */}
+      <div className="px-3 pb-3 flex flex-col gap-2" style={{ borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+        <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-faint)' }}>Metadata</span>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px]" style={{ color: 'var(--text-faint)' }}>Screen Type</label>
+          <select
+            value={activeScreen.screenType ?? ''}
+            onChange={e => updateScreenMeta(activeScreen.id, { screenType: e.target.value as typeof activeScreen.screenType || undefined })}
+            className="rounded px-1.5 py-1 text-[11px] outline-none"
+            style={{ appearance: 'none', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+          >
+            <option value="">— none —</option>
+            <option value="info">info</option>
+            <option value="select">select</option>
+            <option value="input">input</option>
+            <option value="loader">loader</option>
+            <option value="result">result</option>
+            <option value="form">form</option>
+          </select>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <label className="text-[10px]" style={{ color: 'var(--text-faint)' }}>Allow Back</label>
+          <button
+            onClick={() => updateScreenMeta(activeScreen.id, { allowBack: !activeScreen.allowBack })}
+            className="w-8 h-4 rounded-full transition-colors relative"
+            style={{ background: activeScreen.allowBack ? 'var(--accent)' : 'var(--bg-hover)' }}
+          >
+            <div className="absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all" style={{ left: activeScreen.allowBack ? 18 : 2 }} />
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px]" style={{ color: 'var(--text-faint)' }}>Funnel Value Key</label>
+          <input type="text" value={activeScreen.funnelValueKey ?? ''} placeholder="e.g. age"
+            onChange={e => updateScreenMeta(activeScreen.id, { funnelValueKey: e.target.value || undefined })}
+            className="rounded px-2 py-1 text-[11px] outline-none"
+            style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+            onFocus={e => (e.currentTarget.style.borderColor = 'var(--border-active)')}
+            onBlur={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+          />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px]" style={{ color: 'var(--text-faint)' }}>Form Type</label>
+          <select
+            value={activeScreen.formType ?? ''}
+            onChange={e => updateScreenMeta(activeScreen.id, { formType: e.target.value as typeof activeScreen.formType || undefined })}
+            className="rounded px-1.5 py-1 text-[11px] outline-none"
+            style={{ appearance: 'none', background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+          >
+            <option value="">— none —</option>
+            <option value="single-select">single-select</option>
+            <option value="multi-select">multi-select</option>
+            <option value="input">input</option>
+            <option value="none">none</option>
+          </select>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[10px]" style={{ color: 'var(--text-faint)' }}>Analytics Event</label>
+          <input type="text" value={activeScreen.analytics?.event_name ?? ''} placeholder="e.g. view_welcome"
+            onChange={e => updateScreenMeta(activeScreen.id, { analytics: e.target.value ? { event_name: e.target.value } : undefined })}
+            className="rounded px-2 py-1 text-[11px] outline-none"
+            style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+            onFocus={e => (e.currentTarget.style.borderColor = 'var(--border-active)')}
+            onBlur={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+          />
+        </div>
+
+        <div className="flex gap-2">
+          <div className="flex flex-col gap-1 flex-1">
+            <label className="text-[10px]" style={{ color: 'var(--text-faint)' }}>Order</label>
+            <input type="number" min={1} value={activeScreen.order ?? ''} placeholder="—"
+              onChange={e => updateScreenMeta(activeScreen.id, { order: e.target.value ? Number(e.target.value) : undefined })}
+              className="rounded px-2 py-1 text-[11px] outline-none w-full"
+              style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+              onFocus={e => (e.currentTarget.style.borderColor = 'var(--border-active)')}
+              onBlur={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+            />
+          </div>
+          <div className="flex flex-col gap-1 flex-1">
+            <label className="text-[10px]" style={{ color: 'var(--text-faint)' }}>Total</label>
+            <input type="number" min={1} value={activeScreen.total ?? ''} placeholder="—"
+              onChange={e => updateScreenMeta(activeScreen.id, { total: e.target.value ? Number(e.target.value) : undefined })}
+              className="rounded px-2 py-1 text-[11px] outline-none w-full"
+              style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+              onFocus={e => (e.currentTarget.style.borderColor = 'var(--border-active)')}
+              onBlur={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+            />
+          </div>
         </div>
       </div>
     </div>
